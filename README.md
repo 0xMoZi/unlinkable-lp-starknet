@@ -125,49 +125,6 @@ sequenceDiagram
     Note over RD: No on-chain link between Wallet A and Wallet B
 ```
 
-### Flow diagram (text fallback)
-
-```
-User Wallet A + Frontend
-  -> Local only: choose secret
-  -> Local only: commitment = poseidon(walletA, amountA, amountB, secret, timestamp)
-  -> StealthVault: deposit(commitment, amountA, amountB)
-  -> Public state: commitment hash, amounts, timestamp
-
-Admin
-  -> StealthVault: batch_deploy_liquidity()
-  -> StarkDeFi AMM: add_liquidity(totalPendingA, totalPendingB)
-  -> Public state: LP tokens minted to vault
-
-Admin
-  -> StealthVault/RewardDistributor: harvest_and_sync()
-  -> Public state: updated global reward indices
-
-Fresh Wallet B + Frontend
-  -> Local only: enter commitment + secret
-  -> Local only: generate proof(walletA, amountA, amountB, secret, timestamp, commitment)
-  -> RewardDistributor: claim_rewards(proof, commitment) or withdraw(proof, commitment)
-
-RewardDistributor
-  -> HonkVerifier: verify proof
-  -> Checks:
-     1) commitment exists in vault
-     2) proof is valid
-     3) position not already withdrawn
-  -> State update: transfer rewards or unwind LP position to Wallet B
-
-Publicly visible after claim/withdraw:
-  - commitment hash
-  - tx sender (Wallet B — not linked to Wallet A)
-  - transferred amounts
-  - updated reward indices
-
-Never revealed:
-  - secret
-  - that Wallet A == original depositor
-  - witness internals
-```
-
 ---
 
 ## Folder structure
