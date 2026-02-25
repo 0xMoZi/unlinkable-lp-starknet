@@ -1,6 +1,6 @@
-# stealth-lp-starknet
+# unlinkable-lp-starknet
 
-`stealth-lp` is a privacy-preserving liquidity provision prototype on Starknet. It lets users deposit tokens into an AMM liquidity pool and later claim rewards or withdraw their position from a completely different, unrelated wallet — with no on-chain link between the depositor and the recipient.
+`unlinkable-lp` is a privacy-preserving liquidity provision prototype on Starknet. It lets users deposit tokens into an AMM liquidity pool and later claim rewards or withdraw their position from a completely different, unrelated wallet — with no on-chain link between the depositor and the recipient.
 
 Most LP positions on AMMs are fully transparent: the wallet that deposits, the amount, and the timing are all visible on-chain, making LP positions trivially traceable. This project explores a middle ground: public deposit mechanics, private ownership claims.
 
@@ -173,7 +173,7 @@ Never revealed:
 ## Folder structure
 
 ```
-stealth-lp-starknet/
+unlinkable-lp-starknet/
 ├── circuit/                    # Noir ZK circuit
 │   ├── src/main.nr             # Commitment ownership circuit
 │   ├── Nargo.toml
@@ -207,8 +207,8 @@ stealth-lp-starknet/
 ## Quick start
 
 ```bash
-git clone https://github.com/0xMoZi/stealth-lp-starknet
-cd stealth-lp-starknet
+git clone https://github.com/0xMoZi/unlinkable-lp-starknet
+cd unlinkable-lp-starknet
 ```
 
 ### Run frontend
