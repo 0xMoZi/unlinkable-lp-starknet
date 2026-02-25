@@ -96,7 +96,6 @@ interface DepositOnChainStatus {
     deployed: boolean;
 }
 
-// Lookup phase type — same privacy model as Claim/Withdraw
 type LookupPhase = "idle" | "proving" | "loading" | "done";
 
 function loadSnapshots(): TVLSnapshot[] {
@@ -296,8 +295,6 @@ export default function Dashboard() {
     };
 
     // ── Proof-gated lookup ────────────────────────────────────
-    // Same privacy model as Claim.tsx and Withdraw.tsx:
-    // commitment + secret → ZK proof → THEN fetch and show position
     const handleLookup = async () => {
         if (!lookupCommitment || !lookupSecret || !account) return;
 
@@ -310,13 +307,25 @@ export default function Dashboard() {
             return;
         }
 
+        // whaleAddress must be the original depositor, not the current wallet.
+        // This is what allows a fresh wallet to look up a position it didn't deposit from.
+        const whaleAddress = localDeposit.whaleAddress;
+        if (!whaleAddress) {
+            setLookupError(
+                "whaleAddress not found in local storage. " +
+                    "This deposit was recorded before this field was added. " +
+                    "Re-deposit or manually add the depositor address.",
+            );
+            return;
+        }
+
         setLookupPhase("proving");
         setLookupError(null);
         setLookupInfo(null);
 
         try {
             const proofResult = await generateProof({
-                whaleAddress: account.address,
+                whaleAddress, // ← depositor address, not account.address
                 amountA: BigInt(localDeposit.rawAmountA),
                 amountB: BigInt(localDeposit.rawAmountB),
                 secret: lookupSecret,
@@ -326,7 +335,6 @@ export default function Dashboard() {
 
             if (!proofResult) throw new Error("Proof generation returned null");
 
-            // Proof OK — fetch on-chain data
             setLookupPhase("loading");
 
             const commitmentBigInt = BigInt(lookupCommitment);

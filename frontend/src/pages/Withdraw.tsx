@@ -17,10 +17,11 @@ import { useWallet } from "@/hooks/WalletContext";
 import { useProof } from "@/hooks/use-proof";
 import { getDeposit } from "@/lib/store";
 import { TOKEN_META } from "@/constants/addresses";
+import { TOKEN_META } from "@/constants/addresses";
 import {
-    vaultGetDepositInfo,
     rdWithdraw,
     rdIsWithdrawn,
+    vaultGetDepositInfo,
     type DepositInfo,
 } from "@/lib/starknet";
 import {
@@ -79,6 +80,13 @@ export default function Withdraw() {
     const [secret, setSecret] = useState("");
     const [destination, setDestination] = useState(address || "");
 
+    // Manual inputs — used when deposit is not in localStorage (fresh browser/device)
+    const [manualWhaleAddress, setManualWhaleAddress] = useState("");
+    const [manualRawAmountA, setManualRawAmountA] = useState("");
+    const [manualRawAmountB, setManualRawAmountB] = useState("");
+    const [manualTimestamp, setManualTimestamp] = useState("");
+    const [needsManualInput, setNeedsManualInput] = useState(false);
+
     // State machine
     const [phase, setPhase] = useState<Phase>("input");
     const [error, setError] = useState<string | null>(null);
@@ -101,14 +109,26 @@ export default function Withdraw() {
         if (!commitment || !secret || !account) return;
 
         const localDeposit = getDeposit(commitment);
-        if (!localDeposit?.rawAmountA || !localDeposit?.rawAmountB) {
+
+        // Resolve proof inputs — prefer localStorage, fall back to manual fields
+        const whaleAddress = localDeposit?.whaleAddress || manualWhaleAddress;
+        const rawAmountA = localDeposit?.rawAmountA || manualRawAmountA;
+        const rawAmountB = localDeposit?.rawAmountB || manualRawAmountB;
+        const timestamp =
+            localDeposit?.timestamp ??
+            (manualTimestamp ? Number(manualTimestamp) : null);
+
+        // If any required field is missing, show manual input form
+        if (!rawAmountA || !rawAmountB || !whaleAddress || timestamp === null) {
+            setNeedsManualInput(true);
             setError(
-                "rawAmountA/rawAmountB not found in local storage. " +
-                    "Make sure this deposit was made in this browser.",
+                "Deposit not found in this browser's storage. " +
+                    "Please fill in the deposit details below — these were shown when you made the deposit.",
             );
             return;
         }
 
+        setNeedsManualInput(false);
         setPhase("proving");
         setError(null);
         setProofCalldata(null);
@@ -116,11 +136,11 @@ export default function Withdraw() {
 
         try {
             const proofResult = await generateProof({
-                whaleAddress: account.address,
-                amountA: BigInt(localDeposit.rawAmountA),
-                amountB: BigInt(localDeposit.rawAmountB),
+                whaleAddress,
+                amountA: BigInt(rawAmountA),
+                amountB: BigInt(rawAmountB),
                 secret,
-                timestamp: localDeposit.timestamp,
+                timestamp,
                 commitment,
             });
 
@@ -193,6 +213,11 @@ export default function Withdraw() {
         setSecret("");
         setCommitment("");
         setIsWithdrawnState(false);
+        setNeedsManualInput(false);
+        setManualWhaleAddress("");
+        setManualRawAmountA("");
+        setManualRawAmountB("");
+        setManualTimestamp("");
     };
 
     return (
@@ -285,6 +310,78 @@ export default function Withdraw() {
                                         {error}
                                     </AlertDescription>
                                 </Alert>
+                            )}
+
+                            {/* Manual input fallback — shown when deposit not in localStorage */}
+                            {needsManualInput && (
+                                <div className="space-y-3 rounded-lg border border-muted p-3">
+                                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                        Deposit Details (from your deposit
+                                        receipt)
+                                    </p>
+                                    <div className="space-y-2">
+                                        <Label className="text-xs">
+                                            Depositor Address
+                                        </Label>
+                                        <Input
+                                            className="font-mono text-xs"
+                                            placeholder="0x... (wallet that made the deposit)"
+                                            value={manualWhaleAddress}
+                                            onChange={(e) =>
+                                                setManualWhaleAddress(
+                                                    e.target.value,
+                                                )
+                                            }
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-xs">
+                                            Raw Amount {TOKEN_META.A.symbol}{" "}
+                                            (before decimals)
+                                        </Label>
+                                        <Input
+                                            className="font-mono text-xs"
+                                            placeholder="e.g. 200000000000000000"
+                                            value={manualRawAmountA}
+                                            onChange={(e) =>
+                                                setManualRawAmountA(
+                                                    e.target.value,
+                                                )
+                                            }
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-xs">
+                                            Raw Amount {TOKEN_META.B.symbol}{" "}
+                                            (before decimals)
+                                        </Label>
+                                        <Input
+                                            className="font-mono text-xs"
+                                            placeholder="e.g. 250000000"
+                                            value={manualRawAmountB}
+                                            onChange={(e) =>
+                                                setManualRawAmountB(
+                                                    e.target.value,
+                                                )
+                                            }
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-xs">
+                                            Timestamp (unix)
+                                        </Label>
+                                        <Input
+                                            className="font-mono text-xs"
+                                            placeholder="e.g. 1772006178"
+                                            value={manualTimestamp}
+                                            onChange={(e) =>
+                                                setManualTimestamp(
+                                                    e.target.value,
+                                                )
+                                            }
+                                        />
+                                    </div>
+                                </div>
                             )}
 
                             {!connected ? (

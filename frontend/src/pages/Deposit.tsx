@@ -119,6 +119,7 @@ export default function Deposit() {
                 amountB: depositResult.amountB,
                 rawAmountA: depositResult.rawAmountA.toString(),
                 rawAmountB: depositResult.rawAmountB.toString(),
+                whaleAddress: account.address,
                 batchId: null,
                 deployed: false,
                 lpShare: "0",

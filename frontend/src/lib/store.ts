@@ -8,6 +8,7 @@ export interface Deposit {
     amountB: string; // cUSDC
     rawAmountA: string;
     rawAmountB: string;
+    whaleAddress: string;
     batchId: number | null;
     deployed: boolean;
     lpShare: string;
